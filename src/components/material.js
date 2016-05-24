@@ -20,6 +20,7 @@ module.exports.Component = registerComponent('material', {
   schema: {
     shader: { default: 'standard', oneOf: shaderNames },
     transparent: { default: false },
+    flatshading: { default: false },
     opacity: { default: 1.0, min: 0.0, max: 1.0 },
     side: { default: 'front', oneOf: ['front', 'back', 'double'] },
     depthTest: { default: true },

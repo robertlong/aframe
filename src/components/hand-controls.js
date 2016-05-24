@@ -12,6 +12,11 @@ module.exports.Component = registerComponent('hand-controls', {
     this.listener = window.addEventListener('keydown', function (event) {
       if (event.keyCode === 80) {  // p.
         self.playAnimation('pointing', true);
+        self.el.emit('button-event', {
+          id: 1,
+          pressed: true,
+          value: true
+        });
       }
     }, false);
     this.listener = window.addEventListener('keyup', function (event) {
@@ -29,7 +34,9 @@ module.exports.Component = registerComponent('hand-controls', {
 
   tick: function (time, delta) {
     var mesh = this.el.getObject3D('mesh');
-    mesh.update(delta / 1000);
+    if (mesh) {
+      mesh.update(delta / 1000);
+    }
     this.updatePose();
     this.updateButtons();
   },

@@ -4,7 +4,7 @@ var utils = require('../../utils/');
 
 var dummyDolly = new THREE.Object3D();
 var controls = new THREE.VRControls(dummyDolly);
-
+console.log(dummyDolly);
 var ENTER_VR_CLASS = 'a-enter-vr';
 var ENTER_VR_NO_HEADSET = 'data-a-enter-vr-no-headset';
 var ENTER_VR_NO_WEBVR = 'data-a-enter-vr-no-webvr';
