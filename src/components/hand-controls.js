@@ -7,6 +7,8 @@ module.exports.Component = registerComponent('hand-controls', {
   },
 
   init: function () {
+    this.previousControllerPosition = new THREE.Vector3();
+
     this.animationActive = 'pointing';
     var self = this;
     this.listener = window.addEventListener('keydown', function (event) {
@@ -48,6 +50,7 @@ module.exports.Component = registerComponent('hand-controls', {
     var dolly = new THREE.Object3D();
     var standingMatrix = new THREE.Matrix4();
     controllerEuler.order = 'YXZ';
+    var deltaControllerPosition = new THREE.Vector3();
     return function () {
       var controller;
       var pose;
@@ -76,10 +79,15 @@ module.exports.Component = registerComponent('hand-controls', {
         y: THREE.Math.radToDeg(controllerEuler.y),
         z: THREE.Math.radToDeg(controllerEuler.z)
       });
+
+      deltaControllerPosition.copy(controllerPosition).sub(this.previousControllerPosition);
+      this.previousControllerPosition.copy(controllerPosition);
+      var currentPosition = el.getComputedAttribute('position');
+
       el.setAttribute('position', {
-        x: controllerPosition.x,
-        y: controllerPosition.y,
-        z: controllerPosition.z
+        x: currentPosition.x + deltaControllerPosition.x,
+        y: currentPosition.y + deltaControllerPosition.y,
+        z: currentPosition.z + deltaControllerPosition.z
       });
     };
   })(),
@@ -91,16 +99,23 @@ module.exports.Component = registerComponent('hand-controls', {
     if (!this.controller) { return; }
     for (i = 0; i < controller.buttons.length; ++i) {
       buttonState = controller.buttons[i];
-      this.el.emit('button-event', {
+      var state = {
         id: i,
         pressed: buttonState.pressed,
         value: buttonState.value
-      });
-      this.handleButton(i, buttonState.pressed, buttonState.value);
+      };
+
+      // touchpad for vive
+      if (i === 0) {
+        state.touched = buttonState.touched;
+        state.axes = controller.axes;
+      }
+      this.el.emit('button-event', state);
+      this.handleButton(i, buttonState);
     }
   },
 
-  handleButton: function (id, isPressed, value) {
+  handleButton: function (id, buttonState) {
     // buttonId
     // 0 - trackpad
     // 1 - trigger ( intensity value from 0.5 to 1 )
@@ -110,13 +125,13 @@ module.exports.Component = registerComponent('hand-controls', {
     // Only control trigger button
     switch (id) {
       case 1:
-        if (isPressed !== this.triggerPressed) {
-          this.triggerPressed = isPressed;
-          this.playAnimation('pointing', isPressed);
+        if (buttonState.pressed !== this.triggerPressed) {
+          this.triggerPressed = buttonState.pressed;
+          this.playAnimation('pointing', buttonState.pressed);
         }
         break;
       case 2:
-        this.playAnimation('close', isPressed);
+        this.playAnimation('close', buttonState.pressed);
         break;
     }
   },
