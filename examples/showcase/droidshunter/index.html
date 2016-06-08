@@ -22,45 +22,28 @@
       <a-entity id="left-hand" gun="" hand-controls="hand: left"
         obj-model="obj: url(gun.obj); mtl: url(gun.mtl)">
       </a-entity>
-      <!--<a-entity id="right-hand" gun="" hand-controls="hand: right"
-                blend-model="url(../../assets/models/hands/rightHand.json)"></a-entity>
-              -->
       <a-entity id="right-hand" gun="" hand-controls="hand: right"
                 obj-model="obj: url(gun.obj); mtl: url(gun.mtl)">
                 <a-entity id="lightttt" position="0 -0.1 -0.2" light="color:#f00; intensity: 0.4; type:point"></a-entity>
-<!--                <a-entity id="lightttt" position="0 -0.1 -0.2" light="color:#ff0; intensity: 0.4; type:point" geometry="primitive: icosahedron; detail: 0; radius:0.05" material:"color:#fff"></a-entity>-->
       </a-entity>
       <a-entity id="sky2"
                 geometry="primitive: sphere; radius: 565;"
+                rotation="70 0 0"
                 material="shader: flat; color: #47c9ff; side: double; src: url(sky.jpg)">
       </a-entity>
-
 <!--      <a-entity id="sky"
                 geometry="primitive: sphere; radius: 565;"
                 material="shader: flat; color: #47c9ff; side: double; map: url(sky.jpg)">
                 <a-animation attribute="material.color" to="#47c9ff" from="#ff0000" begin="player-hit" dur="500" fill="forwards"></a-animation>
-      </a-entity>
-  <!--    <a-entity id="ground"
-                geometry="primitive: circle; radius: 8;"
-                rotation="-90 0 0"
-                material="shader: flat; src: #arena"></a-entity>
-                <a-entity counter></a-entity>
--->
-
-<a-entity id="sky"
-          position = "1 1 1"
-          obj-model="obj: url(gun.obj); mtl: url(gun.mtl)"
-            scale="0.01 0.01 0.01"
-          material="color: #fff;">
-</a-entity>
+      </a-entity>-->
 
       <a-entity id="ground2"
                 position="0 0.0 0"
                 scale="0.2 0.2 0.2"
                 obj-model="obj: url(platform.obj)"
-                material="color: #F7B896;"></a-entity>
+                material="color: #AAA"></a-entity>
       <a-entity id="sky"
-                scale="0.1 0.1 0.1s"
+                scale="0.1 0.1 0.1"
                 obj-model="obj: url(bigsphere2.obj)"
                 material="color: #333;"></a-entity>
 

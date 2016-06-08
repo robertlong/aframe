@@ -5,6 +5,11 @@ AFRAME.registerComponent('gun', {
   },
 
   init: function () {
+    this.el.setAttribute('sound', {
+      src: '128297_xenonn_layered-gunshot-7.ogg',
+      on: 'shoot'
+    });
+
     this.fire = null;
     this.el.addEventListener('model-loaded', function (evt) {
       this.model = this.el.getObject3D('mesh');
@@ -52,6 +57,7 @@ AFRAME.registerComponent('gun', {
 
   shoot: function () {
     var el = this.el;
+    this.el.emit('shoot');
     var matrixWorld = el.object3D.matrixWorld;
     var position = new THREE.Vector3();
     var direction = new THREE.Vector3();
@@ -72,14 +78,14 @@ AFRAME.registerComponent('gun', {
     direction.applyQuaternion(quaternion);
     direction.normalize();
 
-    entity.setAttribute('bullet', {direction: direction});
-
     // direction.multiply(position);
     // position.z+=0.01;
     var inc = new THREE.Vector3(0.0, -0.03, -0.1);
     inc.applyQuaternion(quaternion);
     position.add(inc);
     entity.setAttribute('position', position);
+    entity.setAttribute('bullet', {direction: direction, position: position});
+
 /*
     console.log({
       x: THREE.Math.radToDeg(rotation.x),
@@ -112,7 +118,6 @@ AFRAME.registerComponent('gun', {
       if (this.fire) {
         this.fire.material.opacity = Math.sin(t * t);
         this.fire.material.transparent = true;
-        this.fire.rotation.y = t;
         // this.fire.position.copy(this.fire.parent.parent.position);
 
         // this.fire.applyMatrix( new THREE.Matrix4().setTranslation( 0, 10, 0 ) );
@@ -121,7 +126,9 @@ AFRAME.registerComponent('gun', {
         // this.fire.scale.set(t,t,t);
       }
     } else {
-      this.fire.visible = false;
+      if (this.fire) {
+        this.fire.visible = false;
+      }
     }
   },
 

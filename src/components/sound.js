@@ -13,19 +13,20 @@ module.exports.Component = registerComponent('sound', {
     on: { default: 'click' },
     autoplay: { default: false },
     loop: { default: false },
-    volume: { default: 1 }
+    volume: { default: 1 },
+    pool: { default: 10 }
   },
 
   init: function () {
     this.listener = null;
-    this.sound = null;
+    this.soundsPool = [];
   },
 
   update: function (oldData) {
     var data = this.data;
     var el = this.el;
-    var sound = this.sound;
     var srcChanged = data.src !== oldData.src;
+    // var poolChanged = data.pool !== oldData.pool;
 
     // Create new sound if not yet created or changing `src`.
     if (srcChanged) {
@@ -33,12 +34,14 @@ module.exports.Component = registerComponent('sound', {
         warn('Audio source was not specified with `src`');
         return;
       }
-      sound = this.setupSound();
+      this.setupSound();
     }
 
-    sound.autoplay = data.autoplay;
-    sound.setLoop(data.loop);
-    sound.setVolume(data.volume);
+    this.soundsPool.forEach(function (sound) {
+      sound.autoplay = data.autoplay;
+      sound.setLoop(data.loop);
+      sound.setVolume(data.volume);
+    });
 
     if (data.on !== oldData.on) {
       if (oldData.on) { el.removeEventListener(oldData.on); }
@@ -46,13 +49,19 @@ module.exports.Component = registerComponent('sound', {
     }
 
     // All sound values set. Load in `src`.
-    if (srcChanged) { sound.load(data.src); }
+    if (srcChanged) {
+      this.soundsPool.forEach(function (sound) {
+        sound.load(data.src);
+      });
+    }
   },
 
   remove: function () {
     this.el.removeObject3D('sound');
     try {
-      this.sound.disconnect();
+      this.soundsPool.forEach(function (sound) {
+        sound.disconnect();
+      });
     } catch (e) {
       // disconnect() will throw if it was never connected initially.
       warn('Audio source not properly disconnected');
@@ -67,9 +76,8 @@ module.exports.Component = registerComponent('sound', {
   setupSound: function () {
     var el = this.el;
     var sceneEl = el.sceneEl;
-    var sound = this.sound;
 
-    if (sound) {
+    if (this.soundsPool.length > 0) {
       this.stop();
       el.removeObject3D('sound');
     }
@@ -87,29 +95,49 @@ module.exports.Component = registerComponent('sound', {
       evt.detail.cameraEl.getObject3D('camera').add(listener);
     });
 
-    sound = this.sound = new THREE.PositionalAudio(listener);
-    el.setObject3D('sound', sound);
+    this.soundsPool = [];
+    var soundGroup = new THREE.Group();
+    for (var i = 0; i < this.data.pool; i++) {
+      this.soundsPool[i] = new THREE.PositionalAudio(listener);
+      soundGroup.add(this.soundsPool);
+    }
+    el.setObject3D('sound', soundGroup);
 
-    sound.source.onended = function () {
-      sound.onEnded();
-      el.emit('sound-ended');
-    };
+    this.soundsPool.forEach(function (sound) {
+      sound.source.onended = function () {
+        sound.onEnded();
+        el.emit('sound-ended', {index: i});
+      };
+    });
+  },
 
-    return sound;
+  playByPos: function (i) {
+    var sound = this.soundsPool[i];
+    if (!sound.source.buffer) { return; }
+    sound.play();
   },
 
   play: function () {
-    if (!this.sound.source.buffer) { return; }
-    this.sound.play();
+    for (var i = 0; i < this.soundsPool.length; i++) {
+      var sound = this.soundsPool[i];
+      if (!sound.isPlaying && sound.source.buffer) {
+        this.soundsPool[i].play();
+        return;
+      }
+    }
   },
 
   stop: function () {
-    if (!this.sound.source.buffer) { return; }
-    this.sound.stop();
+    this.soundsPool.forEach(function (sound) {
+      if (!sound.source.buffer) { return; }
+      sound.stop();
+    });
   },
 
   pause: function () {
-    if (!this.sound.source.buffer || !this.sound.isPlaying) { return; }
-    this.sound.pause();
+    this.soundsPool.forEach(function (sound) {
+      if (!sound.source.buffer || !sound.isPlaying) { return; }
+      sound.pause();
+    });
   }
 });

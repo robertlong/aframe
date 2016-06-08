@@ -18,7 +18,7 @@ AFRAME.registerSystem('enemy', {
                   dist * Math.sin(angle),
                   Math.sqrt(radius * radius - dist * dist)];
     if (point[1] < 0) {
-      point[1] = -point[1];
+      // point[1] = -point[1];
     }
 
     entity.setAttribute('enemy', {
@@ -44,8 +44,8 @@ AFRAME.registerComponent('enemy', {
   schema: {
     timer: { default: 0 },
     size: { default: 1 },
-    endPosition: {},
-    startPosition: {},
+    endPosition: { default: { x: 0, y: 0, z: 0 } },
+    startPosition: { default: { x: 0, y: 0, z: 0 } },
     lifespan: { default: 5.0 },
     skipCache: { default: false }
   },
@@ -54,19 +54,27 @@ AFRAME.registerComponent('enemy', {
     this.system.enemies.push(this);
     this.life = this.data.lifespan;
     this.alive = true;
+    this.exploding = false;
     this.el.addEventListener('hit', this.collided.bind(this));
     // @todo Maybe we could send the time in init?
     this.time = this.el.sceneEl.time;
+
+    this.el.setAttribute('sound', {
+      src: '51464__smcameron__bombexplosion.ogg',
+      on: 'collided',
+      volume: 10
+    });
   },
   collided: function () {
     if (this.exploding) {
       return;
     }
 
+    this.el.emit('collided');
+
     this.shootBack();
     // var mesh = this.el.getObject3D('mesh');
     // mesh.material.color.setHex(0xff0000);
-    this.exploding = true;
     // this.explodingTime = this.el.sceneEl.time;
     var children = this.el.getObject3D('mesh').children;
     for (var i = 0; i < children.length; i++) {
@@ -78,6 +86,7 @@ AFRAME.registerComponent('enemy', {
       children[i].startPosition = children[i].position.clone();
       children[i].endPosition = children[i].position.clone().add(children[i].explodingDirection.clone().multiplyScalar(3));
     }
+    this.exploding = true;
   },
   died: function () {
     this.alive = false;
@@ -90,13 +99,10 @@ AFRAME.registerComponent('enemy', {
     var head = this.el.sceneEl.camera.el.components['look-controls'].dolly.position.clone();
     direction = head.sub(direction).normalize();
 
-    entity.setAttribute('enemybullet', {direction: direction});
+    entity.setAttribute('enemybullet', {direction: direction, position: this.el.object3D.position});
     entity.setAttribute('position', this.el.object3D.position);
-    // entity.setAttribute('geometry', {primitive: 'sphere', radius: 0.08});
     entity.setAttribute('geometry', {primitive: 'icosahedron', radius: 0.08, detail: 0});
-
     entity.setAttribute('material', {shader: 'standard', flatShading: true, color: '#f00'});
-    entity.id = 'bullet';
     this.el.sceneEl.appendChild(entity);
   },
   removeAll: function () {
@@ -192,7 +198,7 @@ AFRAME.registerComponent('enemy', {
       this.life -= delta / 1000;
       if (this.life < 0) {
         this.life = 0;
-        this.collided();
+//        this.collided();
       }
 
       // var model = this.el.getObject3D('mesh');
