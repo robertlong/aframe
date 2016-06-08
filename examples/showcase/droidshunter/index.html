@@ -27,6 +27,8 @@
               -->
       <a-entity id="right-hand" gun="" hand-controls="hand: right"
                 obj-model="obj: url(gun.obj); mtl: url(gun.mtl)">
+                <a-entity id="lightttt" position="0 -0.1 -0.2" light="color:#f00; intensity: 0.4; type:point"></a-entity>
+<!--                <a-entity id="lightttt" position="0 -0.1 -0.2" light="color:#ff0; intensity: 0.4; type:point" geometry="primitive: icosahedron; detail: 0; radius:0.05" material:"color:#fff"></a-entity>-->
       </a-entity>
       <a-entity id="sky2"
                 geometry="primitive: sphere; radius: 565;"
@@ -49,10 +51,12 @@
           position = "1 1 1"
           obj-model="obj: url(gun.obj); mtl: url(gun.mtl)"
             scale="0.01 0.01 0.01"
-          material="color: #fff;"></a-entity>
+          material="color: #fff;">
+</a-entity>
 
       <a-entity id="ground2"
                 position="0 0.0 0"
+                scale="0.2 0.2 0.2"
                 obj-model="obj: url(platform.obj)"
                 material="color: #F7B896;"></a-entity>
       <a-entity id="sky"

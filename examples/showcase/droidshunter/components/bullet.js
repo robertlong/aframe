@@ -34,15 +34,27 @@ AFRAME.registerComponent('collider', {
 AFRAME.registerComponent('bullet', {
   schema: {
     direction: {type: 'vec3'},
-    speed: {default: 10.0}
+    // speed: {default: 40.0}
+    speed: {default: 10.0},
+    acceleration: {default: 5.0}
   },
 
   init: function () {
     this.direction = new THREE.Vector3(this.data.direction.x, this.data.direction.y, this.data.direction.z);
+    this.currentAcceleration = this.data.acceleration;
   },
   tick: function (time, delta) {
     var pos = this.el.getAttribute('position');
-    var newPosition = new THREE.Vector3(pos.x, pos.y, pos.z).add(this.direction.clone().multiplyScalar(this.data.speed * delta / 1000));
+    if (this.currentAcceleration > 1) {
+      this.currentAcceleration -= 2 * delta / 1000.0;
+    } else if (this.currentAcceleration <= 1) {
+      this.currentAcceleration = 1;
+      this.el.setAttribute('material', {color: '#f0f'});
+    }
+
+    this.el.setAttribute('scale', {x: 1, y: 1, z: 1.5 * this.currentAcceleration});
+
+    var newPosition = new THREE.Vector3(pos.x, pos.y, pos.z).add(this.direction.clone().multiplyScalar(this.currentAcceleration * this.data.speed * delta / 1000));
     this.el.setAttribute('position', newPosition);
 
     // megahack
@@ -50,7 +62,7 @@ AFRAME.registerComponent('bullet', {
 
     var enemies = document.querySelectorAll('[enemy]');
     for (var i = 0; i < enemies.length; i++) {
-      if (newPosition.distanceTo(enemies[i].object3D.position) < 2) {
+      if (newPosition.distanceTo(enemies[i].object3D.position) < 1) {
         enemies[i].emit('hit');
       }
     }

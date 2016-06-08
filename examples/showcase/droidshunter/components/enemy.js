@@ -1,25 +1,4 @@
-/* global AFRAME THREE */
-AFRAME.registerComponent('json-loader', {
-  update: function () {
-    var objectLoader;
-    var object3D = this.el.object3D;
-    if (this.objectLoader) { return; }
-    objectLoader = this.objectLoader = new THREE.ObjectLoader();
-    objectLoader.load('http://localhost:9000/examples/showcase/droidshunter/untitled.json', function (obj) {
-      console.log(obj);
-      obj.children.forEach(function (value) {
-        if (value instanceof THREE.Mesh) {
-          value.geometry.computeFaceNormals();
-          value.geometry.computeVertexNormals();
-          value.receiveShadow = true;
-          value.material.shading = THREE.FlatShading;
-        }
-      });
-      object3D.add(obj);
-    });
-  }
-});
-
+/* global AFRAME THREE TWEEN */
 AFRAME.registerSystem('enemy', {
   init: function () {
     this.enemies = [];
@@ -32,8 +11,6 @@ AFRAME.registerSystem('enemy', {
   },
   createNewEnemy: function () {
     var entity = document.createElement('a-entity');
-    entity.setAttribute('enemy', {lifespan: 4 * ((Math.random() + 1))});
-
     var radius = 13;
     var angle = Math.random() * Math.PI * 2;
     var dist = radius * Math.sqrt(Math.random());
@@ -44,14 +21,19 @@ AFRAME.registerSystem('enemy', {
       point[1] = -point[1];
     }
 
+    entity.setAttribute('enemy', {
+      lifespan: 6 * (Math.random() + 1),
+      startPosition: {x: point[0], y: -10, z: point[2]},
+      endPosition: {x: point[0], y: point[1], z: point[2]}
+    });
+
     this.sceneEl.appendChild(entity);
 
-    entity.setAttribute('position', {x: point[0], y: point[1], z: point[2]});
+    entity.setAttribute('position', {x: point[0], y: -10, z: point[2]});
     // entity.setAttribute('geometry', {primitive: 'icosahedron', radius: 1, detail: 1});
-    // entity.setAttribute('json-loader', 'untitled.json');
-    // obj-model="obj: url(bigsphere.obj)"
-    entity.setAttribute('obj-model', {obj: 'url(mydroid.obj)', mtl: 'url(mydroid.mtl)'});
-    entity.setAttribute('material', {shader: 'standard', color: '#ff9', transparent: 'true', opacity: 0.5, flatshading: true});
+    entity.setAttribute('obj-model', {obj: 'url(mydroid2.obj)', mtl: 'url(mydroid2.mtl)'});
+    // entity.setAttribute('material', {shader: 'standard', color: '#ff9', transparent: 'true', opacity: 0.5, flatshading: true});
+    entity.setAttribute('material', {shader: 'standard', color: '#ff9', transparent: 'true', opacity: 1.0, flatshading: true});
 
     // console.log(document.getElementById('droid').object3D.children[0]);
     // entity.el.object3D = document.getElementById('droid').getObject3D('mesh');
@@ -62,6 +44,8 @@ AFRAME.registerComponent('enemy', {
   schema: {
     timer: { default: 0 },
     size: { default: 1 },
+    endPosition: {},
+    startPosition: {},
     lifespan: { default: 5.0 },
     skipCache: { default: false }
   },
@@ -71,13 +55,32 @@ AFRAME.registerComponent('enemy', {
     this.life = this.data.lifespan;
     this.alive = true;
     this.el.addEventListener('hit', this.collided.bind(this));
+    // @todo Maybe we could send the time in init?
+    this.time = this.el.sceneEl.time;
   },
   collided: function () {
+    if (this.exploding) {
+      return;
+    }
+
     this.shootBack();
-    this.alive = false;
     // var mesh = this.el.getObject3D('mesh');
     // mesh.material.color.setHex(0xff0000);
-    this.el.setAttribute('material', {color: 0xff0000});
+    this.exploding = true;
+    // this.explodingTime = this.el.sceneEl.time;
+    var children = this.el.getObject3D('mesh').children;
+    for (var i = 0; i < children.length; i++) {
+      // children[i].explodingDirection = new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize();
+      children[i].explodingDirection = new THREE.Vector3(
+        2 * Math.random() - 1,
+        2 * Math.random() - 1,
+        2 * Math.random() - 1);
+      children[i].startPosition = children[i].position.clone();
+      children[i].endPosition = children[i].position.clone().add(children[i].explodingDirection.clone().multiplyScalar(3));
+    }
+  },
+  died: function () {
+    this.alive = false;
     this.removeAll();
     this.system.createNewEnemy();
   },
@@ -89,8 +92,10 @@ AFRAME.registerComponent('enemy', {
 
     entity.setAttribute('enemybullet', {direction: direction});
     entity.setAttribute('position', this.el.object3D.position);
-    entity.setAttribute('geometry', {primitive: 'sphere', radius: 0.08});
-    entity.setAttribute('material', {shader: 'standard', color: '#f00'});
+    // entity.setAttribute('geometry', {primitive: 'sphere', radius: 0.08});
+    entity.setAttribute('geometry', {primitive: 'icosahedron', radius: 0.08, detail: 0});
+
+    entity.setAttribute('material', {shader: 'standard', flatShading: true, color: '#f00'});
     entity.id = 'bullet';
     this.el.sceneEl.appendChild(entity);
   },
@@ -105,6 +110,84 @@ AFRAME.registerComponent('enemy', {
       return;
     }
 
+    if (this.exploding) {
+      if (!this.explodingTime) {
+        this.explodingTime = time;
+      }
+      var duration = 2000;
+      var t0 = (time - this.explodingTime) / duration;
+      var children = this.el.getObject3D('mesh').children;
+      t = TWEEN.Easing.Exponential.Out(t0);
+
+      for (var i = 0; i < children.length; i++) {
+        // t = TWEEN.Easing.Exponential.Out(t);
+
+        var pos = children[i].startPosition.clone();
+
+        children[i].position.copy(children[i].startPosition.clone().lerp(children[i].endPosition, t));
+
+        // var inc = delta / 250;
+/*
+        var dir = children[i].explodingDirection.clone().multiplyScalar(inc);
+        children[i].rotation.x+= dir.x;
+        children[i].rotation.y+= dir.y;
+        children[i].rotation.z+= dir.z;
+*/
+        var dur = 1 - t;
+        // dur*=dur;
+        children[i].scale.x = dur;
+        children[i].scale.y = dur;
+        children[i].scale.z = dur;
+        children[i].material.opacity = (1 - t0);
+        children[i].material.transparent = true;
+      }
+      // this.el.setAttribute('scale',{x:t,y:t,z:t});
+      if (t0 >= 1) {
+        console.log('Died!');
+        this.died();
+      }
+      return;
+    }
+
+    // var radius = 0;
+    // var currentPosition = this.el.getAttribute('position');
+    // if (currentPosition.y < this.data.finalPosition.y) {
+    // console.log(currentPosition.y.toFixed(2), this.data.finalPosition.y.toFixed(2), currentPosition.y < this.data.finalPosition.y);
+    duration = 2000;
+    var t = (time - this.time) / duration;
+    if (t > 1) {
+      t = 1;
+    }
+
+    pos = new THREE.Vector3(this.data.startPosition.x, this.data.startPosition.y, this.data.startPosition.z);
+    t = TWEEN.Easing.Back.Out(t);
+    pos.lerp(this.data.endPosition, t);
+    // currentPosition.y+=easeInQuad(delta/1000);
+    // if (pos.y > this.data.finalPosition.y) {
+      // pos.y = this.data.finalPosition.y;
+    // }
+    this.el.setAttribute('position', pos);
+
+/*
+    var currentPosition = this.el.getAttribute('position');
+    //if (currentPosition.y < this.data.finalPosition.y) {
+      //console.log(currentPosition.y.toFixed(2), this.data.finalPosition.y.toFixed(2), currentPosition.y < this.data.finalPosition.y);
+      var duration = 2000;
+      var t = (time - this.time)/duration;
+      if (t>1)
+        t=1;
+      var pos = new THREE.Vector3(this.data.startPosition.x, this.data.startPosition.y, this.data.startPosition.z);
+      t = TWEEN.Easing.Back.Out(t);
+      pos.lerp(this.data.endPosition, t);
+      //currentPosition.y+=easeInQuad(delta/1000);
+      //if (pos.y > this.data.finalPosition.y) {
+        //pos.y = this.data.finalPosition.y;
+      //}
+      this.el.setAttribute('position', pos);
+*/
+    // }
+    // entity.setAttribute('position', {x: point[0], y: 0, z: point[2]});
+
     if (this.life > 0) {
       this.life -= delta / 1000;
       if (this.life < 0) {
@@ -115,9 +198,9 @@ AFRAME.registerComponent('enemy', {
       // var model = this.el.getObject3D('mesh');
       this.el.setAttribute('material', {transparent: true});
       // model.material.transparent = true;
-      var lifePerc = 1 - this.life / this.data.lifespan;
+      // var lifePerc = 1 - this.life / this.data.lifespan;
       // model.material.opacity = lifePerc;
-      this.el.setAttribute('material', {opacity: lifePerc});
+      // this.el.setAttribute('material', {opacity: lifePerc});
 
       var head = this.el.sceneEl.camera.el.components['look-controls'].dolly.position.clone();
       this.el.object3D.lookAt(head);
@@ -127,26 +210,6 @@ AFRAME.registerComponent('enemy', {
   },
 
   update: function () {
-
-/*
-    var self = this;
-    var el = this.el;
-    var src = this.data;
-
-    if (!src) { return; }
-
-    this.remove();
-    this.model = new THREE.BlendCharacter();
-
-    this.model.load(src, function () {
-      el.setObject3D('mesh', self.model);
-      el.emit('model-loaded', {format: 'blend', model: self.model});
-      self.model.castShadow = true;
-      self.model.receiveShadow = true;
-      self.model.material.shading = THREE.FlatShading;
-      self.model.geometry.computeBoundingBox();
-    });
-    */
   },
 
   remove: function () {
