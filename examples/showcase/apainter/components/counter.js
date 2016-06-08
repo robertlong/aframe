@@ -164,7 +164,7 @@ AFRAME.registerComponent('counter', {
   },
 
   tick: function (time, delta) {
-    console.log(this.points, this.lifes);
+    // console.log(this.points, this.lifes);
   },
 
   remove: function () {

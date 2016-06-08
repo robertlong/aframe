@@ -262,6 +262,7 @@ THREE.MeshLineMaterial = function (parameters) {
     '	 if( useDash == 1. ){',
     '	 	 ',
     '	 }',
+    ' c.a = texture2D( map, vUV ).a;',
     '    gl_FragColor = c;',
     '',
     '}' ];

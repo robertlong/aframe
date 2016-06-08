@@ -1,5 +1,6 @@
 /* global AFRAME THREE */
-
+var vertices;
+var idx = 0;
 AFRAME.registerComponent('brush', {
   schema: {
   },
@@ -12,8 +13,8 @@ AFRAME.registerComponent('brush', {
     this.obj = this.el.object3D;
     this.mesh = null;
     this.color = new THREE.Color(0xd03760);
-    this.lineWidth = 0.1;
-    this.gripPressed = false;
+    this.lineWidth = 0.01;
+    this.lineWidthModifier = 0.0;
     this.textures = {};
     this.currentMap = 0;
     var self = this;
@@ -27,6 +28,7 @@ AFRAME.registerComponent('brush', {
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
         });
+        console.log(self.textures);
       }
     }
 
@@ -70,7 +72,7 @@ AFRAME.registerComponent('brush', {
 
     this.el.addEventListener('stroke-changed', function (evt) {
       this.currentMap = evt.detail.strokeId;
-      this.lineWidth = evt.detail.lineWidth * 0.1;
+      this.lineWidth = evt.detail.lineWidth * 0.05;
     }.bind(this));
 
     this.el.addEventListener('button-event', function (evt) {
@@ -83,43 +85,82 @@ AFRAME.registerComponent('brush', {
       if (evt.detail.id === 2) {
         if (evt.detail.pressed && !this.gripPressed) {
           this.gripPressed = evt.detail.pressed;
-          this.currentMap = (this.currentMap + 1) % Object.keys(this.textures).length;
+          console.log('Grip!');
+          // this.currentMap = (this.currentMap + 1) % Object.keys(this.textures).length;
           // this.playAnimation('pointing', buttonState.pressed);
         }
         if (!evt.detail.pressed && this.gripPressed) {
           this.gripPressed = false;
         }
       }
-      if (evt.detail.id === 1 && evt.detail.pressed) {
-        if (!this.active) {
-          this.drawLine();
-          this.active = true;
+      if (evt.detail.id === 1) {
+        this.lineWidthModifier = evt.detail.value;
+        if (evt.detail.value > 0) {
+          if (!this.active) {
+            this.drawLine();
+            this.active = true;
+          }
+        } else {
+          this.active = false;
+          this.mesh = null;
         }
-      }
-      if (evt.detail.id === 1 && !evt.detail.pressed) {
-        this.active = false;
-        this.mesh = null;
       }
     }.bind(this));
   },
 
   tick: function (time, delta) {
     if (this.mesh) {
-      var geo = this.mesh.geo;
-      var g = this.mesh.g;
+      for (var j = 0; j < vertices.length - 3; j += 3) {
+        vertices[ j ] = vertices[ j + 6 ];
+        vertices[ j + 1 ] = vertices[ j + 7 ];
+        vertices[ j + 2 ] = vertices[ j + 8 ];
 
-      for (var j = 0; j < geo.length; j += 3) {
-        geo[ j ] = geo[ j + 3 ];
-        geo[ j + 1 ] = geo[ j + 4 ];
-        geo[ j + 2 ] = geo[ j + 5 ];
+        vertices[ j + 3 ] = vertices[ j + 9 ];
+        vertices[ j + 4 ] = vertices[ j + 10 ];
+        vertices[ j + 5 ] = vertices[ j + 11 ];
       }
 
       if (this.active) {
-        geo[ geo.length - 3 ] = this.obj.position.x;
-        geo[ geo.length - 2 ] = this.obj.position.y;
-        geo[ geo.length - 1 ] = this.obj.position.z;
+        var matrixWorld = this.obj.matrixWorld;
+        var position = new THREE.Vector3();
+        var direction = new THREE.Vector3();
+        position.setFromMatrixPosition(matrixWorld);
+        var quaternion = new THREE.Quaternion();
+        var translation = new THREE.Vector3();
+        var scale = new THREE.Vector3();
+        matrixWorld.decompose(translation, quaternion, scale);
+
+        direction = new THREE.Vector3();
+        direction.set(0, 0, 1);
+        direction.applyQuaternion(quaternion);
+        direction.normalize();
+        var posBase = this.obj.position.clone().add(direction.clone().multiplyScalar(-0.1));
+
+        direction = new THREE.Vector3();
+        direction.set(1, 0, 0);
+        direction.applyQuaternion(quaternion);
+        direction.normalize();
+
+        var posA = posBase.clone(); // this.obj.position.clone();
+        var posB = posBase.clone(); // this.obj.position.clone();
+        var lineWidth = this.lineWidth * this.lineWidthModifier;
+        posA.add(direction.clone().multiplyScalar(lineWidth));
+        posB.add(direction.clone().multiplyScalar(-lineWidth));
+
+        idx = vertices.length - 6;
+
+        vertices[ idx++ ] = posA.x;
+        vertices[ idx++ ] = posA.y;
+        vertices[ idx++ ] = posA.z;
+
+        vertices[ idx++ ] = posB.x;
+        vertices[ idx++ ] = posB.y;
+        vertices[ idx++ ] = posB.z;
       }
-      g.setGeometry(geo);
+
+      this.mesh.geometry.attributes.position.needsUpdate = true;
+      this.mesh.geometry.computeVertexNormals();
+      this.mesh.geometry.normalsNeedUpdate = true;
     }
   },
 
@@ -133,41 +174,141 @@ AFRAME.registerComponent('brush', {
 
   drawLine: function () {
     this.vertexCounter = 0;
-    var geo = new Float32Array(1000 * 3);
-    for (var j = 0; j < geo.length; j += 3) {
-      geo[ j ] = this.obj.position.x;
-      geo[ j + 1 ] = this.obj.position.y;
-      geo[ j + 2 ] = this.obj.position.z;
-    }
 
+/*
     var g = new THREE.MeshLine();
     g.setGeometry(geo, function (p) {
       return p;
     });
 
+/*
     var material = new THREE.MeshLineMaterial({
       useMap: true,
       map: this.textures[this.currentMap],
       color: this.color.clone(),
-      opacity: 1.0,
+      //opacity: 1.0,
       resolution: this.resolution,
       sizeAttenuation: true,
       lineWidth: this.lineWidth,
       near: 0.001,
       far: 10000,
-      depthTest: false,
+      depthTest: true,
       depthWrite: true,
-      transparent: true
+      transparent: true,
+      alphaTest: 0.4,
+      side: 2,
+    });
+*/
+
+    var material = new THREE.MeshBasicMaterial({
+      color: 0x999999,
+      side: THREE.DoubleSide
     });
 
-    var mesh = new THREE.Mesh(g.geometry, material);
+    material = new THREE.MeshStandardMaterial({
+      color: this.color.clone(),
+      roughness: 0.5,
+      metalness: 0.5,
+      side: THREE.DoubleSide,
+      shading: THREE.FlatShading
+      // map: this.textures[this.currentMap]
+      // transparent: true,
+      // alphaTest: 0.5
+    });
+    // var material = new THREE.MeshPhongMaterial( { color: 0xdddddd, specular: 0x009900, shininess: 30, side: THREE.DoubleSide, shading: THREE.FlatShading } );
+
+    var geometry = new THREE.BufferGeometry();
+    // create a simple square shape. We duplicate the top left and bottom right
+    // vertices because each vertex needs to appear once per triangle.
+    vertices = new Float32Array(1000 * 3 * 2);
+    var uvs = new Float32Array(1000 * 2 * 2);
+
+    var quaternion = new THREE.Quaternion();
+    var translation = new THREE.Vector3();
+    var scale = new THREE.Vector3();
+    var matrixWorld = this.obj.matrixWorld;
+
+    matrixWorld.decompose(translation, quaternion, scale);
+    var direction = new THREE.Vector3();
+    direction.set(1, 0, 0);
+    direction.applyQuaternion(quaternion);
+    direction.normalize();
+
+    direction = new THREE.Vector3();
+    direction.set(0, 0, 1);
+    direction.applyQuaternion(quaternion);
+    direction.normalize();
+    var posBase = this.obj.position.clone().add(direction.clone().multiplyScalar(-0.1));
+
+    direction = new THREE.Vector3();
+    direction.set(1, 0, 0);
+    direction.applyQuaternion(quaternion);
+    direction.normalize();
+
+    var posA = posBase.clone();
+    var posB = posBase.clone();
+    var lineWidth = this.lineWidth * this.lineWidthModifier;
+    posA.add(direction.clone().multiplyScalar(lineWidth));
+    posB.add(direction.clone().multiplyScalar(-lineWidth));
+
+    var i = 0;
+    for (var j = 0; j < vertices.length / 2; j += 3) {
+  /*    vertices[ j ] = this.obj.position.x;
+      vertices[ j + 1 ] = this.obj.position.y;
+      vertices[ j + 2 ] = this.obj.position.z;
+*/
+      vertices[ i++ ] = posA.x;
+      vertices[ i++ ] = posA.y;
+      vertices[ i++ ] = posA.z;
+
+      vertices[ i++ ] = posB.x;
+      vertices[ i++ ] = posB.y;
+      vertices[ i++ ] = posB.z;
+    }
+
+    i = 0;
+    for (j = 0; j < uvs.length / 2; j += 2) {
+      var v = (j / 2) / (uvs.length / 2);
+      uvs[ i++ ] = v;
+      uvs[ i++ ] = 0;
+
+      uvs[ i++ ] = v;
+      uvs[ i++ ] = 1;
+    }
+
+    // itemSize = 3 because there are 3 values (components) per vertex
+    geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3).setDynamic(true));
+    geometry.addAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+
+    var mesh = new THREE.Mesh(geometry, material);
+    mesh.drawMode = THREE.TriangleStripDrawMode;
+    // mesh.drawMode = THREE.TriangleFanDrawMode;
+    // mesh.drawMode = THREE.TrianglesDrawMode; // default
+/*
+document.querySelectorAll('[light]').forEach(function(item){var light = item.getObject3D('light');
+console.log(item.id);
+if (item.id=="hemisphere") return;
+light.castShadow=true;
+light.shadow.mapSize.width = 1024;
+light.shadow.mapSize.height = 1024;
+
+light.shadow.camera.near = 1;
+light.shadow.camera.far = 4000;
+light.shadow.camera.fov = 45;
+})
+*/
+
     mesh.frustumCulled = false;
-    mesh.geo = geo;
-    mesh.g = g;
+    mesh.vertices = vertices;
+
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
 
     var entity = document.createElement('a-entity');
     this.el.sceneEl.appendChild(entity);
     entity.object3D.add(mesh);
+
+    console.log(mesh);
 
 /*
     var geometry = new THREE.SphereGeometry( 5, 32, 32 );
@@ -175,6 +316,7 @@ AFRAME.registerComponent('brush', {
     var sphere = new THREE.Mesh( geometry, material );
 */
 
+    console.log(this.obj);
     this.mesh = mesh;
     this.meshesArr.push(mesh);
   }

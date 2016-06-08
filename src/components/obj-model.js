@@ -21,7 +21,7 @@ module.exports.Component = registerComponent('obj-model', {
   update: function () {
     var data = this.data;
     if (!data.obj) { return; }
-    this.remove();
+    // this.remove();
     this.loadObj(data.obj, data.mtl);
   },
 

@@ -36,7 +36,7 @@ module.exports.Component = registerComponent('hand-controls', {
 
   tick: function (time, delta) {
     var mesh = this.el.getObject3D('mesh');
-    if (mesh) {
+    if (mesh && mesh.update) {
       mesh.update(delta / 1000);
     }
     this.updatePose();
@@ -137,15 +137,18 @@ module.exports.Component = registerComponent('hand-controls', {
   },
 
   playAnimation: function (animation, isPressed) {
+/*
     var timeScale = -1;
     var mesh = this.el.getObject3D('mesh');
     if (isPressed) { timeScale = 1; }
-
+/*
+    return;
     mesh.mixer.clipAction(animation).loop = 2200;
     mesh.mixer.clipAction(animation).clampWhenFinished = true;
     mesh.mixer.clipAction(animation).timeScale = timeScale;
     mesh.play(this.animationActive, 0);
     mesh.play(animation, 1);
     this.animationActive = animation;
+*/
   }
 });
