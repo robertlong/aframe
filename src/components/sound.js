@@ -96,12 +96,12 @@ module.exports.Component = registerComponent('sound', {
     });
 
     this.soundsPool = [];
-    var soundGroup = new THREE.Group();
+    // var soundGroup = new THREE.Group();
     for (var i = 0; i < this.data.pool; i++) {
       this.soundsPool[i] = new THREE.PositionalAudio(listener);
-      soundGroup.add(this.soundsPool);
+      // soundGroup.add(this.soundsPool);
     }
-    el.setObject3D('sound', soundGroup);
+    el.setObject3D('sound', this.soundsPool[0]);
 
     this.soundsPool.forEach(function (sound) {
       sound.source.onended = function () {
