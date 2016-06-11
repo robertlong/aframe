@@ -1,36 +1,4 @@
 /* global AFRAME THREE*/
-AFRAME.registerComponent('collider', {
-  schema: {},
-
-  init: function () {
-  },
-
-  update: function () {
-    var sceneEl = this.el.sceneEl;
-    var mesh = this.el.getObject3D('mesh');
-    var object3D = this.el.object3D;
-    var originPoint = this.el.object3D.position.clone();
-    for (var vertexIndex = 0; vertexIndex < mesh.geometry.vertices.length; vertexIndex++) {
-      var localVertex = mesh.geometry.vertices[vertexIndex].clone();
-      var globalVertex = localVertex.applyMatrix4(object3D.matrix);
-      var directionVector = globalVertex.sub(object3D.position);
-
-      var ray = new THREE.Raycaster(originPoint, directionVector.clone().normalize());
-      var collisionResults = ray.intersectObjects(sceneEl.object3D.children, true);
-      collisionResults.forEach(hit);
-    }
-    function hit (collision) {
-      if (collision.object === object3D) {
-        return;
-      }
-      if (collision.distance < directionVector.length()) {
-        if (!collision.object.el) { return; }
-        collision.object.el.emit('hit');
-      }
-    }
-  }
-});
-
 AFRAME.registerComponent('bullet', {
   schema: {
     direction: {type: 'vec3'},
@@ -45,7 +13,7 @@ AFRAME.registerComponent('bullet', {
     this.startPosition = this.data.position;
     this.hit = false;
   },
-  hitttt: function () {
+  hitObject: function () {
     this.el.setAttribute('material', {color: '#AAA'});
     this.hit = true;
   },
@@ -74,17 +42,19 @@ AFRAME.registerComponent('bullet', {
     var position = new THREE.Vector3(pos.x, pos.y, pos.z);
     if (position.length() >= 15) {
       var ray = new THREE.Raycaster(this.startPosition, this.direction.clone().normalize());
-      var collisionResults = ray.intersectObjects(document.getElementById('sky').object3D.children, true);
+      var collisionResults = ray.intersectObjects(document.getElementById('bigsphere').object3D.children, true);
       var self = this;
       collisionResults.forEach(function (collision) {
-  /*      if (collision.object === object3D) {
-          return;
-        }
-*/
         if (collision.distance < position.length()) {
           if (!collision.object.el) { return; }
+          if (collision.faceIndex === 1494) {
+             // Hack to check collision against the counter face
+            if (self.el.sceneEl.getAttribute('game').state === 'game-over') {
+              self.el.emit('game-start');
+            }
+          }
           self.el.setAttribute('position', collision.point);
-          self.hitttt();
+          self.hitObject();
         }
       });
     }
@@ -109,7 +79,7 @@ AFRAME.registerComponent('bullet', {
     for (var i = 0; i < enemies.length; i++) {
       if (newPosition.distanceTo(enemies[i].object3D.position) < 1) {
         enemies[i].emit('hit');
-        this.hitttt();
+        this.hitObject();
         return;
       }
     }

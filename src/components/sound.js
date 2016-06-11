@@ -1,7 +1,7 @@
 var debug = require('../utils/debug');
 var registerComponent = require('../core/component').registerComponent;
 var THREE = require('../lib/three');
-
+// var styleParser = require('../utils/styleParser');
 var warn = debug('components:sound:warn');
 
 /**

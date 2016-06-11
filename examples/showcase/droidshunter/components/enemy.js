@@ -110,6 +110,9 @@ AFRAME.registerComponent('music', {
 AFRAME.registerSystem('enemy', {
   init: function () {
     this.enemies = [];
+    document.querySelector('a-scene').addEventListener('game-over', function () {
+      console.log('Enemyessss gameover');
+    });
 
     this.createNewEnemy();
     this.createNewEnemy();
@@ -137,6 +140,8 @@ AFRAME.registerSystem('enemy', {
 
     this.sceneEl.appendChild(entity);
 
+    // this.enemies.push(entity);
+
     entity.setAttribute('position', {x: point[0], y: -10, z: point[2]});
     // entity.setAttribute('geometry', {primitive: 'icosahedron', radius: 1, detail: 1});
     entity.setAttribute('obj-model', {obj: 'url(mydroid2.obj)', mtl: 'url(mydroid2.mtl)'});
@@ -150,14 +155,17 @@ AFRAME.registerSystem('enemy', {
 
 AFRAME.registerComponent('enemy', {
   schema: {
-    timer: { default: 0 },
-    size: { default: 1 },
-    endPosition: { default: { x: 0, y: 0, z: 0 } },
-    startPosition: { default: { x: 0, y: 0, z: 0 } },
-    lifespan: { default: 5.0 },
-    skipCache: { default: false }
+    active: { default: true }
   },
 
+  deactivate: function () {
+    this.active = false;
+    this.visible = false;
+  },
+  activate: function () {
+    this.active = true;
+    this.visible = true;
+  },
   init: function () {
     this.system.enemies.push(this);
     this.life = this.data.lifespan;
@@ -166,26 +174,42 @@ AFRAME.registerComponent('enemy', {
     this.el.addEventListener('hit', this.collided.bind(this));
     // @todo Maybe we could send the time in init?
     this.time = this.el.sceneEl.time;
-
+/*
     this.el.setAttribute('sound', {
       src: '51464__smcameron__bombexplosion.ogg',
-      on: 'collided',
+      on: 'enemy-hit',
+      //volume: 10
+      volume: 1
+    });
+*/
+    this.soundExplosion = document.createElement('a-entity');
+    this.soundExplosion.setAttribute('sound', {
+      src: '51464__smcameron__bombexplosion.ogg',
+      on: 'enemy-hit',
       volume: 10
     });
+    this.soundExplosion.addEventListener('loaded', function () {
+      this.el.emit('appearing');
+    }.bind(this));
+    this.el.appendChild(this.soundExplosion);
 
-    this.soundA = document.createElement('a-entity');
-    this.soundA.setAttribute('sound', {
+    this.soundAppearing = document.createElement('a-entity');
+    this.soundAppearing.setAttribute('sound', {
       src: '268496__headphaze__robots-and-electromechanics-v2-147.ogg',
       on: 'appearing',
       volume: 10
     });
+    this.soundAppearing.addEventListener('loaded', function () {
+      this.el.emit('appearing');
+    }.bind(this));
   },
   collided: function () {
     if (this.exploding) {
       return;
     }
 
-    this.el.emit('collided');
+    this.el.emit('enemy-hit');
+    this.soundExplosion.emit('enemy-hit');
 
     this.shootBack();
     // var mesh = this.el.getObject3D('mesh');
@@ -227,6 +251,7 @@ AFRAME.registerComponent('enemy', {
   },
 
   tick: function (time, delta) {
+    // if (!this.alive || !this.active) {
     if (!this.alive) {
       return;
     }
@@ -313,7 +338,7 @@ AFRAME.registerComponent('enemy', {
       this.life -= delta / 1000;
       if (this.life < 0) {
         this.life = 0;
-//        this.collided();
+        this.collided();
       }
 
       // var model = this.el.getObject3D('mesh');

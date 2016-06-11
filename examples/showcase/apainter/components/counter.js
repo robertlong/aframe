@@ -140,22 +140,8 @@ AFRAME.registerComponent('counter', {
     this.score.position.y = -1;
     this.el.setObject3D('mesh', this.score);
 
-    this.el.sceneEl.addEventListener('player-hit', this.playerHit.bind(this));
-    this.el.sceneEl.addEventListener('enemy-hit', this.enemyHit.bind(this));
-  },
-
-  playerHit: function () {
-    this.lifes--;
-    if (this.lifes === 0) {
-      this.el.emit('game-over');
-      this.lifes = 0;
-    }
-    this.updateScore();
-  },
-
-  enemyHit: function () {
-    this.points++;
-    this.updateScore();
+    this.el.sceneEl.addEventListener('player-hit', this.updateScore.bind(this));
+    this.el.sceneEl.addEventListener('enemy-hit', this.updateScore.bind(this));
   },
 
   updateScore: function () {
@@ -164,11 +150,10 @@ AFRAME.registerComponent('counter', {
   },
 
   tick: function (time, delta) {
-    // console.log(this.points, this.lifes);
+    console.log(this.points, this.lifes);
   },
 
   remove: function () {
-
 /*    if (!this.model) { return; }
     this.el.removeObject3D('mesh');*/
   }
