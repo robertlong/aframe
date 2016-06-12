@@ -115,8 +115,8 @@ AFRAME.registerSystem('enemy', {
     });
 
     this.createNewEnemy();
-    this.createNewEnemy();
-    this.createNewEnemy();
+    // this.createNewEnemy();
+    // this.createNewEnemy();
   },
   tick: function (time, delta) {
   },
@@ -144,7 +144,9 @@ AFRAME.registerSystem('enemy', {
 
     entity.setAttribute('position', {x: point[0], y: -10, z: point[2]});
     // entity.setAttribute('geometry', {primitive: 'icosahedron', radius: 1, detail: 1});
-    entity.setAttribute('obj-model', {obj: 'url(mydroid2.obj)', mtl: 'url(mydroid2.mtl)'});
+    // entity.setAttribute('obj-model', {obj: 'url(mydroid2.obj)', mtl: 'url(mydroid2.mtl)'});
+    entity.setAttribute('obj-model', {obj: '#droid-obj', mtl: '#droid-mtl'});
+
     // entity.setAttribute('material', {shader: 'standard', color: '#ff9', transparent: 'true', opacity: 0.5, flatshading: true});
     entity.setAttribute('material', {shader: 'standard', color: '#ff9', transparent: 'true', opacity: 1.0, flatshading: true});
 
@@ -281,7 +283,9 @@ AFRAME.registerComponent('enemy', {
 */
         var dur = 1 - t;
         // dur*=dur;
-        children[i].scale.set(dur, dur, dur);
+        children[i].scale.x = dur;
+        children[i].scale.y = dur;
+        children[i].scale.z = dur;
         children[i].material.opacity = (1 - t0);
         children[i].material.transparent = true;
       }

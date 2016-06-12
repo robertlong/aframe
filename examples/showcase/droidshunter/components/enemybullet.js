@@ -13,8 +13,12 @@ AFRAME.registerComponent('enemybullet', {
   tick: function (time, delta) {
     var pos = this.el.getAttribute('position');
     var newPosition = new THREE.Vector3(pos.x, pos.y, pos.z).add(this.direction.clone().multiplyScalar(this.data.speed * delta / 1000));
-    this.el.setAttribute('position', newPosition);
+    if (newPosition.length() > 30) {
+      this.removeBullet();
+      return;
+    }
 
+    this.el.setAttribute('position', newPosition);
     if (this.alive) {
       var head = this.el.sceneEl.camera.el.components['look-controls'].dolly.position;
       if (newPosition.distanceTo(head) < 0.25) {
@@ -23,6 +27,9 @@ AFRAME.registerComponent('enemybullet', {
         this.alive = false;
       }
     }
+  },
+  removeBullet: function () {
+    this.el.parentElement.removeChild(this.el);
   },
 
   remove: function () {
