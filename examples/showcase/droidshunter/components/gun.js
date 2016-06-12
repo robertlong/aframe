@@ -26,22 +26,13 @@ AFRAME.registerComponent('gun', {
     this.model = this.el.getObject3D('mesh');
     this.life = this.data.lifespan;
     this.canShoot = true;
-    this.light = document.getElementById('lightttt');
 
-/*
-    for (var i=0;i<this.model.children.length;i++) {
-      console.log(this.model.children[i]);
-    }
-
-/**
     this.light = document.createElement('a-entity');
     this.el.appendChild(this.light);
 
     this.light.setAttribute('light', {color: '#ff0', intensity: 0.0, type: 'point'});
-    this.light.setAttribute('geometry', {primitive: 'icosahedron', detail: 0, radius:0.05});
+    // this.light.setAttribute('geometry', {primitive: 'icosahedron', detail: 0, radius:0.05});
     this.light.setAttribute('position', {x: 0, y: -0.1, z: -0.2});
-  */
-    // -<a-entity position="0 -0.1 -0.2" light="color:#ff0; intensity: 0.4; type:point" geometry="primitive: icosahedron; detail: 0; radius:0.05" material:"color:#fff"></a-entity>
 
     var self = this;
     this.el.addEventListener('button-event', function (evt) {

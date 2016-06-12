@@ -42,8 +42,8 @@ material="shader:flat; src:url(gameover.png); side: back; color: #f00; transpare
           >
         </a-entity>
 
-        <a-entity id="hurt" geometry="primitive: sphere; radius: 1" material="shader:flat; side: back; color: #f00; transparent: true; opacity: 0.0">
-          <a-animation attribute="material.opacity" to="0.8" from="0" begin="player-hit" direction="alternate" dur="300" repeat="1"></a-animation>
+        <a-entity id="hurt" proxy_event="event: player-hit; dst:#hurt" geometry="primitive: sphere; radius: 1" material="shader:flat; side: back; color: #f00; transparent: true; opacity: 0.0">
+          <a-animation id="player-hit-anim" attribute="material.opacity" to="0.8" from="0" begin="player-hit" direction="alternate" dur="300" repeat="1"></a-animation>
         </a-entity>
       </a-entity>
 
@@ -52,10 +52,9 @@ material="shader:flat; src:url(gameover.png); side: back; color: #f00; transpare
       </a-entity>
       <a-entity id="right-hand" gun="" hand-controls="hand: right"
                 obj-model="obj: url(gun.obj); mtl: url(gun.mtl)">
-                <a-entity id="lightttt" position="0 -0.1 -0.2" light="color:#f00; intensity: 0.4; type:point"></a-entity>
       </a-entity>
       <a-entity id="sky"
-                geometry="primitive: sphere; radius: 565;"
+                geometry="primitive: sphere; radius: 30;"
                 rotation="70 0 0"
                 material="shader: flat; color: #47c9ff; side: double; src: url(sky.jpg)">
       </a-entity>

@@ -1,4 +1,19 @@
 /* global AFRAME */
+// var styleParser = require('../utils/styleParser');
+AFRAME.registerComponent('proxy_event', {
+  schema: {
+    event: { default: '' },
+    dst: { type: 'selector' },
+    bubbles: { default: false }
+  },
+
+  init: function () {
+    this.el.sceneEl.addEventListener(this.data.event, function (event) {
+      this.data.dst.emit(this.data.event, event, this.data.bubbles);
+    }.bind(this));
+  }
+});
+
 AFRAME.registerComponent('game', {
   schema: {
     state: { default: 'start', oneOf: ['start', 'playing', 'game-over'] },
@@ -35,7 +50,6 @@ AFRAME.registerComponent('game', {
   tick: function (time, delta) {
   },
   playerHit: function () {
-    console.log('Player hit!');
     var game = this.el.getAttribute('game');
     game.lifes--;
     if (game.lifes <= 0) {

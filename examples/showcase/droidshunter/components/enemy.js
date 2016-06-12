@@ -281,9 +281,7 @@ AFRAME.registerComponent('enemy', {
 */
         var dur = 1 - t;
         // dur*=dur;
-        children[i].scale.x = dur;
-        children[i].scale.y = dur;
-        children[i].scale.z = dur;
+        children[i].scale.set(dur, dur, dur);
         children[i].material.opacity = (1 - t0);
         children[i].material.transparent = true;
       }
