@@ -115,8 +115,8 @@ AFRAME.registerSystem('enemy', {
     });
 
     this.createNewEnemy();
-    // this.createNewEnemy();
-    // this.createNewEnemy();
+    this.createNewEnemy();
+    this.createNewEnemy();
   },
   tick: function (time, delta) {
   },
@@ -133,9 +133,11 @@ AFRAME.registerSystem('enemy', {
     }
 
     entity.setAttribute('enemy', {
-      lifespan: 6 * (Math.random() + 1),
+      lifespan: 6 * (Math.random()) + 1,
+      waitingTime: 4 * (Math.random()) + 1,
       startPosition: {x: point[0], y: -10, z: point[2]},
-      endPosition: {x: point[0], y: point[1], z: point[2]}
+      endPosition: {x: point[0], y: point[1], z: point[2]},
+      chargingDuration: 4 // 2 * Math.random() + 1,
     });
 
     this.sceneEl.appendChild(entity);
@@ -169,13 +171,18 @@ AFRAME.registerComponent('enemy', {
     this.visible = true;
   },
   init: function () {
+    this.state = 'appearing';
     this.system.enemies.push(this);
     this.life = this.data.lifespan;
+    this.waitingTime = this.data.waitingTime;
     this.alive = true;
+    this.chargingDuration = this.data.chargingDuration;
+
     this.exploding = false;
     this.el.addEventListener('hit', this.collided.bind(this));
     // @todo Maybe we could send the time in init?
-    this.time = this.el.sceneEl.time;
+    this.statusChangeTime = this.time = this.el.sceneEl.time;
+
 /*
     this.el.setAttribute('sound', {
       src: '51464__smcameron__bombexplosion.ogg',
@@ -184,17 +191,43 @@ AFRAME.registerComponent('enemy', {
       volume: 1
     });
 */
+
     this.soundExplosion = document.createElement('a-entity');
     this.soundExplosion.setAttribute('sound', {
       src: '51464__smcameron__bombexplosion.ogg',
       on: 'enemy-hit',
-      volume: 10
+      volume: 4
     });
     this.soundExplosion.addEventListener('loaded', function () {
       this.el.emit('appearing');
     }.bind(this));
     this.el.appendChild(this.soundExplosion);
 
+    this.soundCharging = document.createElement('a-entity');
+    this.soundCharging.setAttribute('sound', {
+      src: '336741__steshystesh__spaceship-whoosh-2.ogg',
+      on: 'charging',
+      off: 'shooting',
+      volume: 1
+    });
+    this.el.appendChild(this.soundCharging);
+    this.soundShooting = document.createElement('a-entity');
+    this.soundShooting.setAttribute('sound', {
+      src: '339169__debsound__arcade-laser-014.ogg',
+      on: 'shooting',
+      volume: 1
+    });
+    this.el.appendChild(this.soundShooting);
+
+/*
+    this.soundCharging = document.createElement('a-entity');
+    this.soundExplosion.setAttribute('sound', {
+      src: '336741__steshystesh__spaceship-whoosh-2.ogg',
+      on: 'charging',
+      volume: 2
+    });
+    this.el.appendChild(this.soundCharging);
+*/
     this.soundAppearing = document.createElement('a-entity');
     this.soundAppearing.setAttribute('sound', {
       src: '268496__headphaze__robots-and-electromechanics-v2-147.ogg',
@@ -213,7 +246,7 @@ AFRAME.registerComponent('enemy', {
     this.el.emit('enemy-hit');
     this.soundExplosion.emit('enemy-hit');
 
-    this.shootBack();
+    this.shoot();
     // var mesh = this.el.getObject3D('mesh');
     // mesh.material.color.setHex(0xff0000);
     // this.explodingTime = this.el.sceneEl.time;
@@ -229,12 +262,18 @@ AFRAME.registerComponent('enemy', {
     }
     this.exploding = true;
   },
-  died: function () {
+  die: function () {
     this.alive = false;
     this.removeAll();
     this.system.createNewEnemy();
   },
-  shootBack: function () {
+
+  shoot: function (time) {
+    this.soundCharging.emit('shooting');
+    this.soundShooting.emit('shooting');
+    console.info('shooting');
+    this.statusChangeTime = time;
+
     var entity = document.createElement('a-entity');
     var direction = this.el.object3D.position.clone();
     var head = this.el.sceneEl.camera.el.components['look-controls'].dolly.position.clone();
@@ -251,7 +290,12 @@ AFRAME.registerComponent('enemy', {
     this.system.enemies.splice(index, 1);
     this.el.parentElement.removeChild(this.el);
   },
-
+  charge: function (time) {
+    console.log('charging');
+    this.statusChangeTime = time;
+    this.state = 'charging';
+    this.soundCharging.emit('charging');
+  },
   tick: function (time, delta) {
     // if (!this.alive || !this.active) {
     if (!this.alive) {
@@ -265,96 +309,59 @@ AFRAME.registerComponent('enemy', {
       var duration = 3000;
       var t0 = (time - this.explodingTime) / duration;
       var children = this.el.getObject3D('mesh').children;
-      t = TWEEN.Easing.Exponential.Out(t0);
+      var t = TWEEN.Easing.Exponential.Out(t0);
 
       for (var i = 0; i < children.length; i++) {
         // t = TWEEN.Easing.Exponential.Out(t);
-
         var pos = children[i].startPosition.clone();
-
         children[i].position.copy(children[i].startPosition.clone().lerp(children[i].endPosition, t));
-
-        // var inc = delta / 250;
-/*
-        var dir = children[i].explodingDirection.clone().multiplyScalar(inc);
-        children[i].rotation.x+= dir.x;
-        children[i].rotation.y+= dir.y;
-        children[i].rotation.z+= dir.z;
-*/
         var dur = 1 - t;
-        // dur*=dur;
-        children[i].scale.x = dur;
-        children[i].scale.y = dur;
-        children[i].scale.z = dur;
+        children[i].scale.set(dur, dur, dur);
         children[i].material.opacity = (1 - t0);
         children[i].material.transparent = true;
       }
-      // this.el.setAttribute('scale',{x:t,y:t,z:t});
       if (t0 >= 1) {
-        console.log('Died!');
-        this.died();
+        this.die();
       }
       return;
     }
+    // var timeOffset = time - this.time;
+    var statusTimeOffset = time - this.statusChangeTime;
 
-    // var radius = 0;
-    // var currentPosition = this.el.getAttribute('position');
-    // if (currentPosition.y < this.data.finalPosition.y) {
-    // console.log(currentPosition.y.toFixed(2), this.data.finalPosition.y.toFixed(2), currentPosition.y < this.data.finalPosition.y);
-    duration = 2000;
-    var t = (time - this.time) / duration;
-    if (t > 1) {
-      t = 1;
-    }
-
-    pos = new THREE.Vector3(this.data.startPosition.x, this.data.startPosition.y, this.data.startPosition.z);
-    t = TWEEN.Easing.Back.Out(t);
-    pos.lerp(this.data.endPosition, t);
-    // currentPosition.y+=easeInQuad(delta/1000);
-    // if (pos.y > this.data.finalPosition.y) {
-      // pos.y = this.data.finalPosition.y;
-    // }
-    this.el.setAttribute('position', pos);
-
-/*
-    var currentPosition = this.el.getAttribute('position');
-    //if (currentPosition.y < this.data.finalPosition.y) {
-      //console.log(currentPosition.y.toFixed(2), this.data.finalPosition.y.toFixed(2), currentPosition.y < this.data.finalPosition.y);
-      var duration = 2000;
-      var t = (time - this.time)/duration;
-      if (t>1)
-        t=1;
-      var pos = new THREE.Vector3(this.data.startPosition.x, this.data.startPosition.y, this.data.startPosition.z);
+    if (this.state === 'appearing') {
+      duration = 2000;
+      t = statusTimeOffset / duration;
+      pos = new THREE.Vector3(this.data.startPosition.x, this.data.startPosition.y, this.data.startPosition.z);
       t = TWEEN.Easing.Back.Out(t);
       pos.lerp(this.data.endPosition, t);
-      //currentPosition.y+=easeInQuad(delta/1000);
-      //if (pos.y > this.data.finalPosition.y) {
-        //pos.y = this.data.finalPosition.y;
-      //}
       this.el.setAttribute('position', pos);
-*/
-    // }
-    // entity.setAttribute('position', {x: point[0], y: 0, z: point[2]});
 
-    if (this.life > 0) {
-      this.life -= delta / 1000;
-      if (this.life < 0) {
-        this.life = 0;
-        this.collided();
+      if (statusTimeOffset >= duration) {
+        this.charge(time);
       }
+    } else if (this.state === 'charging') {
+      var offset = statusTimeOffset / this.chargingDuration;
+      var sca = offset + 1;
+      this.el.setAttribute('scale', {x: sca, y: sca, z: sca});
 
-      // var model = this.el.getObject3D('mesh');
-      this.el.setAttribute('material', {transparent: true});
-      // model.material.transparent = true;
-      // var lifePerc = 1 - this.life / this.data.lifespan;
-      // model.material.opacity = lifePerc;
-      // this.el.setAttribute('material', {opacity: lifePerc});
-
-      var head = this.el.sceneEl.camera.el.components['look-controls'].dolly.position.clone();
-      this.el.object3D.lookAt(head);
-    } else {
-//      console.log("Dead!");
+      if (statusTimeOffset >= this.chargingDuration) {
+        this.state = 'shooting';
+        this.el.setAttribute('scale', {x: 1, y: 1, z: 1});
+        this.shoot(time);
+      }
+    } else if (this.state === 'shooting') {
+      if (this.waitingTime > 0) {
+        this.waitingTime -= delta / 1000;
+        if (this.waitingTime <= 0) {
+          this.charge(time);
+          this.waitingTime = this.data.waitingTime;
+        }
+      }
     }
+
+    // Make the droid to look the headset
+    var head = this.el.sceneEl.camera.el.components['look-controls'].dolly.position.clone();
+    this.el.object3D.lookAt(head);
   },
 
   update: function () {

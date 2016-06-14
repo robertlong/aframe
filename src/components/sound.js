@@ -10,7 +10,8 @@ var warn = debug('components:sound:warn');
 module.exports.Component = registerComponent('sound', {
   schema: {
     src: { default: '' },
-    on: { default: 'click' },
+    on: { default: '' },
+    off: { default: '' },
     autoplay: { default: false },
     loop: { default: false },
     volume: { default: 1 },
@@ -45,7 +46,14 @@ module.exports.Component = registerComponent('sound', {
 
     if (data.on !== oldData.on) {
       if (oldData.on) { el.removeEventListener(oldData.on); }
-      el.addEventListener(data.on, this.play.bind(this));
+      // @megahack until diego does something to listen to a-scene: el.addEventListener(data.on, this.play.bind(this));
+      el.sceneEl.addEventListener(data.on, this.play.bind(this));
+    }
+
+    if (data.off !== oldData.off) {
+      if (oldData.off) { el.removeEventListener(oldData.off); }
+      // @todo megahack until diego does something to listen to a-scene: el.addEventListener(data.off, this.play.bind(this));
+      el.sceneEl.addEventListener(data.off, this.stop.bind(this));
     }
 
     // All sound values set. Load in `src`.
@@ -129,7 +137,7 @@ module.exports.Component = registerComponent('sound', {
 
   stop: function () {
     this.soundsPool.forEach(function (sound) {
-      if (!sound.source.buffer) { return; }
+      if (!sound.source.buffer || !sound.isPlaying) { return; }
       sound.stop();
     });
   },

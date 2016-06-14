@@ -26,9 +26,11 @@
       <a-entity light="color: #47c9ff; intensity: 0.3; type: hemisphere"></a-entity>
 
       <a-entity
+        id="camera"
         camera=""
         wasd-controls=""
         look-controls=""
+        proxy_event="event: player-hit; dst:#camera"
         sound="src: 163441__under7dude__man-getting-hit.ogg; on: player-hit"
       >
         <!--<a-entity light="type: directional; color: #AAA; intensity: 0.7" position="0 0 -1"></a-entity>-->
@@ -48,6 +50,8 @@ material="shader:flat; src:url(gameover.png); side: back; color: #f00; transpare
           <a-animation id="player-hit-anim" attribute="material.opacity" to="0.8" from="0" begin="player-hit" direction="alternate" dur="300" repeat="1"></a-animation>
         </a-entity>
       </a-entity>
+<!--      <a-entity sound-set="src: mysound1.ogg; on: enemy-shoot; volume: 1, src: mysound2.ogg; on: enemy-shoot; volume: 1">
+      <a-entity sound--dead="" sound--hit="" >          -->
 
       <a-entity id="left-hand" gun="" hand-controls="hand: left"
         obj-model="obj: url(gun.obj); mtl: url(gun.mtl)">
