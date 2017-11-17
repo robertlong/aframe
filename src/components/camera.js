@@ -28,6 +28,9 @@ module.exports.Component = registerComponent('camera', {
     var el = this.el;
     var sceneEl = el.sceneEl;
 
+    // To save / restore camera pose
+    this.savedRotation = new THREE.Vector3();
+    this.savedPosition = new THREE.Vector3();
     this.savedPose = null;
 
     // Create camera.
@@ -153,13 +156,15 @@ module.exports.Component = registerComponent('camera', {
    */
   saveCameraPose: function () {
     var el = this.el;
+    var position = el.getAttribute('position');
+    var rotation = el.getAttribute('rotation');
     var hasPositionalTracking = this.hasPositionalTracking !== undefined ? this.hasPositionalTracking : checkHasPositionalTracking();
 
     if (this.savedPose || !hasPositionalTracking) { return; }
 
     this.savedPose = {
-      position: el.getAttribute('position'),
-      rotation: el.getAttribute('rotation')
+      position: this.savedPosition.copy(position),
+      rotation: this.savedRotation.copy(rotation)
     };
   },
 

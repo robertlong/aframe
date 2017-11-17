@@ -98,10 +98,11 @@ suite('camera', function () {
       var cameraEl = this.el;
       var sceneEl = cameraEl.sceneEl;
       cameraEl.components.camera.hasPositionalTracking = true;
-      sceneEl.emit('enter-vr');
       cameraEl.setAttribute('position', {x: 6, y: 6, z: 6});
+      sceneEl.emit('enter-vr');
+      cameraEl.setAttribute('position', {x: 9, y: 9, z: 9});
       sceneEl.emit('exit-vr');
-      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 0, y: 1.6, z: 0});
+      assert.shallowDeepEqual(cameraEl.getAttribute('position'), {x: 6, y: 6, z: 6});
     });
 
     test('does not restore camera pose without headset', function () {
